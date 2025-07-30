@@ -1,8 +1,8 @@
 """Initial database schema
 
-Revision ID: 10c4ee4f3506
+Revision ID: 45fb1c0f8156
 Revises: 
-Create Date: 2025-07-28 15:51:26.039931
+Create Date: 2025-07-29 14:44:41.804460
 
 """
 from typing import Sequence, Union
@@ -14,7 +14,7 @@ from datetime import datetime
 import uuid
 
 # revision identifiers, used by Alembic.
-revision: str = '10c4ee4f3506'
+revision: str = '45fb1c0f8156'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -45,8 +45,9 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('user',
-    sa.Column('name', sqlmodel.sql.sqltypes.AutoString(length=255), nullable=False),
-    sa.Column('surname', sqlmodel.sql.sqltypes.AutoString(length=255), nullable=False),
+    sa.Column('email', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+    sa.Column('first_name', sqlmodel.sql.sqltypes.AutoString(length=255), nullable=False),
+    sa.Column('last_name', sqlmodel.sql.sqltypes.AutoString(length=255), nullable=False),
     sa.Column('password', sqlmodel.sql.sqltypes.AutoString(length=255), nullable=False),
     sa.Column('age', sa.Integer(), nullable=False),
     sa.Column('role', sa.Enum('ADMIN', 'USER', name='userrole'), nullable=False),
@@ -57,6 +58,7 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['household_id'], ['household.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_index(op.f('ix_user_email'), 'user', ['email'], unique=True)
     op.create_table('category',
     sa.Column('name', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.Column('description', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
@@ -113,7 +115,7 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('id')
     )
-    
+
     now = datetime.now()
     
     currency_data = [
@@ -260,7 +262,7 @@ def upgrade() -> None:
         "parent_id": None,
     },
 ]
-
+    
     op.bulk_insert(
         sa.table(
             "category",
@@ -285,10 +287,10 @@ def upgrade() -> None:
             "created_at": now,
             "updated_at": now,
             "deleted_at": None,
-        }
-        for category in categories
-    ]
-)
+            }
+            for category in categories
+        ],
+    )
 
 
 
@@ -298,10 +300,8 @@ def downgrade() -> None:
     op.drop_table('transaction')
     op.drop_table('budget_goal')
     op.drop_table('category')
+    op.drop_index(op.f('ix_user_email'), table_name='user')
     op.drop_table('user')
     op.drop_table('household')
     op.drop_table('currency')
     # ### end Alembic commands ###
-
-
-

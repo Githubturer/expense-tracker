@@ -7,13 +7,12 @@ from alembic import context
 import sys
 from pathlib import Path
 
-# Insert app path (adjust depending on where migrations/ sits)
-root_path = Path(__file__).resolve().parents[2]  # Should be /usr/src/app
+root_path = Path(__file__).resolve().parents[2]   # /usr/src/
 sys.path.insert(0, str(root_path))
 
 
 from app import models
-from app.config import settings
+from app.core import settings
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

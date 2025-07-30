@@ -2,8 +2,11 @@ fastapi[standard]
 uvicorn
 pydantic-settings
 python-jose[cryptography]
+python-multipart
+passlib[bcrypt]
 asyncpg
 psycopg2-binary==2.9.10
 sqlmodel
 alembic
+aiosmtplib
 

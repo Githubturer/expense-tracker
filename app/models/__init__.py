@@ -1,8 +1,9 @@
-from app.models.household import Household
-from app.models.user import User
-from app.models.transaction import Transaction
-from app.models.currency import Currency
-from app.models.category import Category
-from app.models.budget_goal import BudgetGoal
+from .household import Household
+from .user import User
+from .transaction import Transaction
+from .currency import Currency
+from .category import Category
+from .budget_goal import BudgetGoal
+from .refresh_token import RefreshToken
 
-__all__ = ["Household", "User", "Transaction", "Currency", "Category", "BudgetGoal"]
+__all__ = ["Household", "User", "Transaction", "Currency", "Category", "BudgetGoal", "RefreshToken"]

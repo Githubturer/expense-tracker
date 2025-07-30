@@ -1,5 +1,8 @@
 from enum import Enum
 
+class UserRole(str, Enum):
+    ADMIN = "admin"
+    USER = "user"
 
 class TransactionType(str, Enum):
     FIXED = "fixed"
@@ -15,3 +18,9 @@ class BudgetPeriod(str, Enum):
     WEEKLY = "weekly"
     MONTHLY = "monthly"
     YEARLY = "yearly"
+
+class TokenType(str, Enum):
+    ACCESS = "access"
+    REFRESH = "refresh"
+    VERIFICATION = "verification"
+    PASSWORD_RESET = "password_reset"
