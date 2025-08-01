@@ -2,6 +2,7 @@ from app.models import RefreshToken
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import select
 
+
 class RefreshTokenRepository:
     def __init__(self, session: AsyncSession):
         self.session = session

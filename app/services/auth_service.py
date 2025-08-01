@@ -2,7 +2,12 @@ from app.repositories import UserRepository, RefreshTokenRepository
 from app.core import create_token
 from app.schemas import Token, ChangePasswordRequest
 from app.models import User, RefreshToken
-from app.core.security import verify_password, verify_token, hash_refresh_token, hash_password
+from app.core.security import (
+    verify_password,
+    verify_token,
+    hash_refresh_token,
+    hash_password,
+)
 from app.constants import TokenType
 from app.exceptions import InvalidCredentialsError, UserNotFoundError, NewPasswordError
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -11,34 +16,41 @@ from app.core import settings
 from pydantic import EmailStr
 from app.schemas import PasswordResetRequest
 
+
 class AuthService:
     def __init__(self, session: AsyncSession):
         self.user_repo = UserRepository(session)
         self.refresh_token_repo = RefreshTokenRepository(session)
 
-    async def authenticate_user(self, email: str, password: str, user_agent: str, ip_address: str) -> User:
+    async def authenticate_user(
+        self, email: str, password: str, user_agent: str, ip_address: str
+    ) -> User:
         user = await self.user_repo.get_user_by_email(email)
         if not user:
             raise UserNotFoundError
         if not user.is_verified:
-            raise InvalidCredentialsError("User not verified, please verify your email") #malo ambigious, ali radi jednostavnosti
-        if not verify_password(password, user.password):
-            raise InvalidCredentialsError
+            raise InvalidCredentialsError(
+                "User not verified, please verify your email"
+            )  # malo ambigious, ali radi jednostavnosti
+        verify_password(password, user.password)
         access_token = create_token(user, TokenType.ACCESS)
         refresh_token = create_token(user, TokenType.REFRESH)
         refresh_token_obj = RefreshToken(
             token_hash=hash_refresh_token(refresh_token),
             user_id=user.id,
-            expires_at=datetime.now() + timedelta(days=settings.refresh_token_expire_days),
+            expires_at=datetime.now()
+            + timedelta(days=settings.refresh_token_expire_days),
             user_agent=user_agent,
-            ip_address=ip_address
+            ip_address=ip_address,
         )
         await self.refresh_token_repo.create_refresh_token(refresh_token_obj)
 
         return Token(access_token=access_token, refresh_token=refresh_token)
-    
+
     async def refresh_access_token(self, refresh_token: str) -> Token:
-        refresh_token_obj = await self.refresh_token_repo.get_refresh_token_by_token(hash_refresh_token(refresh_token))
+        refresh_token_obj = await self.refresh_token_repo.get_refresh_token_by_token(
+            hash_refresh_token(refresh_token)
+        )
         if not refresh_token_obj or refresh_token_obj.revoked:
             raise InvalidCredentialsError
         if refresh_token_obj.expires_at < datetime.now():
@@ -51,14 +63,15 @@ class AuthService:
         new_refresh_token_obj = RefreshToken(
             token_hash=hash_refresh_token(new_refresh_token),
             user_id=user.id,
-            expires_at=datetime.now() + timedelta(days=settings.refresh_token_expire_days),
+            expires_at=datetime.now()
+            + timedelta(days=settings.refresh_token_expire_days),
             user_agent=refresh_token_obj.user_agent,
-            ip_address=refresh_token_obj.ip_address
+            ip_address=refresh_token_obj.ip_address,
         )
         await self.refresh_token_repo.create_refresh_token(new_refresh_token_obj)
         access_token = create_token(user, TokenType.ACCESS)
         return Token(access_token=access_token, refresh_token=new_refresh_token)
-    
+
     async def verify_email(self, token: str) -> bool:
         payload = verify_token(token, TokenType.VERIFICATION)
         user = await self.user_repo.get_user_by_email(payload.email)
@@ -67,17 +80,19 @@ class AuthService:
         user.is_verified = True
         await self.user_repo.update_user(user)
         return True
-    
+
     async def resend_email_confirmation(self, email: EmailStr) -> None:
         user = await self.user_repo.get_user_by_email(email)
         if not user:
             raise UserNotFoundError
         if user.is_verified:
-            raise InvalidCredentialsError('User already verified')
+            raise InvalidCredentialsError("User already verified")
         return user
- 
+
     async def logout(self, refresh_token: str) -> None:
-        refresh_token_obj = await self.refresh_token_repo.get_refresh_token_by_token(hash_refresh_token(refresh_token))
+        refresh_token_obj = await self.refresh_token_repo.get_refresh_token_by_token(
+            hash_refresh_token(refresh_token)
+        )
         if not refresh_token_obj:
             raise InvalidCredentialsError
         await self.refresh_token_repo.revoke_refresh_token(refresh_token_obj)
@@ -105,4 +120,3 @@ class AuthService:
         user.password = hash_password(data.new_password)
         await self.user_repo.update_user(user)
         return user
-    

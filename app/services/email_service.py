@@ -9,6 +9,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 class EmailService:
     def __init__(
         self,
@@ -31,14 +32,14 @@ class EmailService:
     async def send_email(self, email: EmailVerification) -> None:
         message = EmailMessage()
         message["From"] = self.from_email
-        message["To"] = ", ".join(email.to)  #više korisnika
+        message["To"] = ", ".join(email.to)  # više korisnika
         message["Subject"] = email.subject
         message.set_content(email.body)
 
         smtp = SMTP(
             hostname=self.smtp_host,
             port=self.smtp_port,
-            use_tls=self.use_ssl,  
+            use_tls=self.use_ssl,
         )
 
         try:
@@ -67,11 +68,13 @@ class EmailService:
         await self.send_email(email_data)
 
     async def send_password_reset_email(self, user: User | None) -> None:
-        #ako user ne postoji, nece se poslati email ali ni nece se baciti error. Vracamo 204 uvijek.
+        # ako user ne postoji, nece se poslati email ali ni nece se baciti error. Vracamo 204 uvijek.
         if not user:
             return None
         token = create_token(user, TokenType.PASSWORD_RESET)
-        password_reset_url = f"Use this password reset token for the API endpoint: {token}"
+        password_reset_url = (
+            f"Use this password reset token for the API endpoint: {token}"
+        )
 
         email_data = EmailVerification(
             subject="Password Reset Token",
@@ -79,5 +82,6 @@ class EmailService:
             to=[user.email],
         )
         await self.send_email(email_data)
+
 
 mail_service = EmailService()

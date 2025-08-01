@@ -5,9 +5,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
 class Environment(str, Enum):
     DEVELOPMENT = "development"
     PRODUCTION = "production"
+
 
 class Settings(BaseSettings):
     # Database
@@ -15,7 +17,7 @@ class Settings(BaseSettings):
     postgres_user: str = Field(..., alias="POSTGRES_USER")
     postgres_password: str = Field(..., alias="POSTGRES_PASSWORD")
     postgres_db: str = Field(..., alias="POSTGRES_DB")
-    
+
     # JWT
     access_secret_key: str = Field(..., alias="ACCESS_SECRET_KEY")
     refresh_secret_key: str = Field(..., alias="REFRESH_SECRET_KEY")
@@ -24,15 +26,19 @@ class Settings(BaseSettings):
     algorithm: str = Field(..., alias="ALGORITHM")
     access_token_expire_minutes: int = Field(..., alias="ACCESS_TOKEN_EXPIRE_MINUTES")
     refresh_token_expire_days: int = Field(..., alias="REFRESH_TOKEN_EXPIRE_DAYS")
-    verification_token_expire_minutes: int = Field(..., alias="VERIFICATION_TOKEN_EXPIRE_MINUTES")
-    password_reset_token_expire_minutes: int = Field(..., alias="PASSWORD_RESET_TOKEN_EXPIRE_MINUTES")
+    verification_token_expire_minutes: int = Field(
+        ..., alias="VERIFICATION_TOKEN_EXPIRE_MINUTES"
+    )
+    password_reset_token_expire_minutes: int = Field(
+        ..., alias="PASSWORD_RESET_TOKEN_EXPIRE_MINUTES"
+    )
 
     # App
     environment: Environment = Field(..., alias="ENVIRONMENT")
     app_name: str = Field(..., alias="APP_NAME")
     debug: bool = Field(..., alias="DEBUG")
 
-    #Logging
+    # Logging
     log_level: str = Field(..., alias="LOG_LEVEL")
     sql_echo: bool = Field(..., alias="SQL_ECHO")
 
@@ -50,7 +56,6 @@ class Settings(BaseSettings):
             self.log_level = "WARNING"
             self.sql_echo = False
 
-    
     class Config:
         env_file = ".env"
 

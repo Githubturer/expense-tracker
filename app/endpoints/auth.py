@@ -1,26 +1,20 @@
 from fastapi import APIRouter, Depends, BackgroundTasks, Response, Request
-from app.services import (
-    HouseholdService,
-    UserService,
-    AuthService,
-    mail_service
-)
+from app.services import HouseholdService, UserService, AuthService, mail_service
 from app.schemas import (
     HouseholdCreate,
     UserCreate,
-    HouseholdRead, 
-    UserRead, 
+    HouseholdRead,
+    UserRead,
     Token,
-    EmailResendRequest, 
-    PasswordResetRequest, 
-    ChangePasswordRequest
+    EmailResendRequest,
+    PasswordResetRequest,
+    ChangePasswordRequest,
 )
-from app.dependencies import get_db_session
+from app.dependencies import get_db_session, get_current_user
 from sqlmodel.ext.asyncio.session import AsyncSession
 from fastapi.security import OAuth2PasswordRequestForm
 from typing import Annotated
 from app.utils import set_refresh_token_cookie
-from app.core import get_current_user
 from app.models import User
 import logging
 
@@ -36,28 +30,29 @@ async def register_household(
     session: AsyncSession = Depends(get_db_session),
 ):
     household_service = HouseholdService(session)
-    household_and_admin = await household_service.create_household_and_admin(household_data)
+    household_and_admin = await household_service.create_household_and_admin(
+        household_data
+    )
     background_tasks.add_task(
         mail_service.send_verification_email,
         household_and_admin.users[0],
     )
     return household_and_admin
 
+
 @router.post("/email-confirmation", response_model=None, status_code=204)
 ## može biti i PUT metoda.
-async def confirm_email(
-    token: str,
-    session: AsyncSession = Depends(get_db_session)
-):
+async def confirm_email(token: str, session: AsyncSession = Depends(get_db_session)):
     auth_service = AuthService(session)
     await auth_service.verify_email(token)
+
 
 @router.post("/user", response_model=UserRead, status_code=201)
 async def register_user(
     user_data: UserCreate,
     background_tasks: BackgroundTasks,
     session: AsyncSession = Depends(get_db_session),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     user_service = UserService(session)
     user_data.household_id = current_user.household_id
@@ -68,6 +63,7 @@ async def register_user(
     )
     return new_user
 
+
 @router.post("/login", response_model=Token)
 async def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
@@ -75,12 +71,22 @@ async def login(
     response: Response = Response,
     request: Request = Request,
 ):
+    """username: admin1@email.com, password: admin1 \n
+    access token iskoristi za pristup API endpointima \n
+    kroz Authorize u swagger UI, gornji desni kut"""
     auth_service = AuthService(session)
-    tokens: Token = await auth_service.authenticate_user(form_data.username, form_data.password, request.headers.get("user-agent"), request.client.host)
+    tokens: Token = await auth_service.authenticate_user(
+        form_data.username,
+        form_data.password,
+        request.headers.get("user-agent"),
+        request.client.host,
+    )
     set_refresh_token_cookie(response, tokens.refresh_token)
     return tokens
 
+
 @router.post("/logout", response_model=None, status_code=204)
+# Smanji access token lifetime ili implementirati blacklist za invalidaciju access tokena.
 async def logout(
     request: Request = Request,
     response: Response = Response,
@@ -90,16 +96,20 @@ async def logout(
     await auth_service.logout(request.cookies.get("refresh_token"))
     response.delete_cookie("refresh_token")
 
-@router.post("/refresh", response_model=Token)
+
+@router.post("/refresh-token", response_model=Token)
 async def refresh(
     request: Request = Request,
     response: Response = Response,
     session: AsyncSession = Depends(get_db_session),
 ):
     auth_service = AuthService(session)
-    tokens: Token = await auth_service.refresh_access_token(request.cookies.get("refresh_token"))
+    tokens: Token = await auth_service.refresh_access_token(
+        request.cookies.get("refresh_token")
+    )
     set_refresh_token_cookie(response, tokens.refresh_token)
     return tokens
+
 
 @router.post("/resend-email-confirmation", response_model=None, status_code=204)
 async def resend_email_confirmation(
@@ -114,6 +124,7 @@ async def resend_email_confirmation(
         user,
     )
 
+
 @router.post("/forgot-password", response_model=None, status_code=204)
 async def forgot_password(
     request_data: EmailResendRequest,
@@ -126,6 +137,7 @@ async def forgot_password(
         mail_service.send_password_reset_email,
         user,
     )
+
 
 @router.post("/reset-password", response_model=None, status_code=204)
 async def reset_password(
@@ -140,7 +152,7 @@ async def reset_password(
 async def change_password(
     request_data: ChangePasswordRequest,
     session: AsyncSession = Depends(get_db_session),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     auth_service = AuthService(session)
     request_data.user_id = current_user.user_id
